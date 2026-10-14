@@ -1,0 +1,227 @@
+================================================================================
+           TIFINIFY - COMPLETE STEP-BY-STEP DEPLOYMENT GUIDE
+================================================================================
+
+This guide provides clear, step-by-step instructions to deploy the Tifinify 
+web application to the cloud for free with HTTPS, or run it in production mode 
+locally for project presentation and viva evaluation.
+
+--------------------------------------------------------------------------------
+TABLE OF CONTENTS:
+--------------------------------------------------------------------------------
+1. Prerequisites & Preparation
+2. Option 1: Deploy to Render.com (Recommended - Free Cloud Hosting)
+   - Method A: Manual Web Service Setup (Easiest)
+   - Method B: 1-Click Render Blueprint Setup
+3. Option 2: Deploy to PythonAnywhere (Alternative Free Cloud Option)
+4. Option 3: Local Network / Viva Demo Deployment (LAN / Wi-Fi Access)
+5. Demo Login Credentials & Verification Checklist
+6. Troubleshooting & Common Issues
+
+================================================================================
+1. PREREQUISITES & PREPARATION
+================================================================================
+
+Before deploying, ensure you have:
+1. A GitHub Account: https://github.com
+2. Your project pushed to a GitHub repository:
+   If your project is not yet on GitHub, run these commands inside the `tifinify` folder:
+     git init
+     git add .
+     git commit -m "Initial commit for deployment"
+     git branch -M main
+     git remote add origin https://github.com/<YOUR_USERNAME>/<YOUR_REPO_NAME>.git
+     git push -u origin main
+
+================================================================================
+2. OPTION 1: DEPLOY TO RENDER.COM (RECOMMENDED)
+================================================================================
+Render (https://render.com) offers free cloud hosting for Python web services 
+with automatic free SSL (HTTPS) and continuous deployment from GitHub.
+
+--------------------------------------------------------------------------------
+METHOD A: Manual Web Service Setup (Step-by-Step)
+--------------------------------------------------------------------------------
+
+STEP 1: Create a Render Account
+1. Visit https://render.com
+2. Click "Get Started" and sign up using your GitHub account.
+
+STEP 2: Create a New Web Service
+1. In your Render Dashboard, click "+ New" button at top right.
+2. Select "Web Service".
+3. Choose "Build and deploy from a Git repository" and click "Next".
+4. Connect your GitHub account and select your `tifinify` repository.
+
+STEP 3: Configure Service Settings
+Fill in the following fields:
+- Name:               tifinify (or any custom name like tifinify-app)
+- Region:             Singapore (or Frankfurt / Oregon - choose nearest to you)
+- Branch:             main
+- Root Directory:     (Leave blank if files are at root, or set to `tifinify` if repo has a parent folder)
+- Runtime:            Python 3
+- Build Command:      pip install -r requirements.txt
+- Start Command:      python scripts/seed_db.py && gunicorn run:app
+- Instance Type:      Free
+
+STEP 4: Configure Environment Variables
+Scroll down to the "Environment Variables" section and add the following:
+
+Key                   | Value
+----------------------|----------------------------------------------------
+FLASK_ENV             | production
+SECRET_KEY            | tifinify-secure-production-secret-key-2026
+DEMO_MODE             | True
+GEMINI_API_KEY        | (Optional: Paste your Google Gemini API key if you have one, or leave blank - demo mode works automatically)
+
+STEP 5: Deploy the Application
+1. Click the "Create Web Service" button at the bottom.
+2. Render will automatically:
+   - Clone your repository
+   - Install required packages from requirements.txt
+   - Run `python scripts/seed_db.py` to create the database & demo data
+   - Start the Gunicorn web server with `run:app`
+3. Watch the build logs. Once you see "Your service is live 🎉", click the URL 
+   provided at the top (e.g., https://tifinify.onrender.com).
+
+--------------------------------------------------------------------------------
+METHOD B: Render Blueprint Deployment (Using existing render.yaml)
+--------------------------------------------------------------------------------
+Since Tifinify already includes a `render.yaml` blueprint:
+1. In Render Dashboard, click "+ New" -> "Blueprint".
+2. Connect your repository.
+3. Render will read `render.yaml` automatically and configure the build settings.
+4. Set the `GEMINI_API_KEY` (optional) and click "Apply".
+5. Render will automatically deploy your project.
+
+*Note on Render Free Tier*: 
+Free web services spin down after 15 minutes of inactivity. When accessed again, 
+it takes about 30-50 seconds to wake up (cold start). This is normal for free hosting.
+
+================================================================================
+3. OPTION 2: DEPLOY TO PYTHONANYWHERE (ALTERNATIVE FREE CLOUD HOSTING)
+================================================================================
+PythonAnywhere (https://www.pythonanywhere.com) is very stable and keeps your 
+SQLite database permanently on their persistent disk.
+
+STEP 1: Create an Account
+1. Go to https://www.pythonanywhere.com and create a free Beginner account.
+2. Your website URL will be `yourusername.pythonanywhere.com`.
+
+STEP 2: Clone the Project
+1. Go to the "Consoles" tab and open a "Bash" console.
+2. Clone your GitHub repository:
+   git clone https://github.com/<YOUR_USERNAME>/<YOUR_REPO_NAME>.git tifinify
+   cd tifinify
+
+STEP 3: Set up Virtual Environment & Install Dependencies
+Run in the Bash console:
+   python3 -m venv .venv
+   source .venv/bin/activate
+   pip install -r requirements.txt
+   python scripts/seed_db.py
+
+STEP 4: Set up Web App in PythonAnywhere Dashboard
+1. Go to the "Web" tab in PythonAnywhere.
+2. Click "Add a new web app".
+3. Choose "Manual configuration" and select "Python 3.11" (or latest available).
+4. Under "Virtualenv", enter the path:
+   /home/<yourusername>/tifinify/.venv
+5. Under "Code", set:
+   - Source code: /home/<yourusername>/tifinify
+   - Working directory: /home/<yourusername>/tifinify
+
+STEP 5: Configure the WSGI File
+1. Under the "Code" section on the Web tab, click the link to the WSGI configuration file:
+   `/var/www/<yourusername>_pythonanywhere_com_wsgi.py`
+2. Delete everything inside and replace with:
+
+   import sys
+   import os
+
+   path = '/home/<yourusername>/tifinify'
+   if path not in sys.path:
+       sys.path.append(path)
+
+   os.environ["FLASK_ENV"] = "production"
+   from run import app as application
+
+3. Click "Save" at the top right.
+
+STEP 6: Reload the Web App
+1. Go back to the "Web" tab.
+2. Click the green "Reload <yourusername>.pythonanywhere.com" button.
+3. Open `https://<yourusername>.pythonanywhere.com` to see your live project!
+
+================================================================================
+4. OPTION 3: LOCAL NETWORK / VIVA DEMO DEPLOYMENT (LAN / WI-FI ACCESS)
+================================================================================
+If you need to show your project live to teachers or examiners on their mobile phones 
+or laptops over the same Wi-Fi network without uploading to the cloud:
+
+STEP 1: Find your local IP Address
+1. Open PowerShell or Command Prompt on Windows.
+2. Type: `ipconfig`
+3. Look for "IPv4 Address" under your Wi-Fi adapter (e.g., `192.168.1.15`).
+
+STEP 2: Start the Production Server with Waitress
+Open PowerShell in the `tifinify` project folder:
+   .\.venv\Scripts\Activate.ps1
+   python -m waitress --host=0.0.0.0 --port=5000 run:app
+
+STEP 3: Access from Any Device
+Anyone connected to the same Wi-Fi can open their browser and visit:
+   http://192.168.1.15:5000
+(Replace 192.168.1.15 with your actual IPv4 address).
+
+================================================================================
+5. DEMO LOGIN CREDENTIALS & KEY PAGES FOR PRESENTATION
+================================================================================
+
+Pre-configured accounts created by `python scripts/seed_db.py`:
+
+Role          | Email                   | Password
+--------------|-------------------------|------------
+Administrator | admin@tifinify.com      | Admin@123
+Student User  | rahul@tifinify.com      | Student@123
+
+Recommended 5-Minute Evaluation Flow:
+1. Landing Page:            /
+   - Show area search, "Use Current Location", and explainable trust preview.
+2. Provider Discovery:      /providers/discovery
+   - Demonstrate interactive map, radius filter, and dietary filters.
+3. Authentic Provider:      /providers/1 (Annapurna Homely Tiffin)
+   - Highlight AI Review Trust Score (94/100, Green badge).
+   - Show aspect breakdown (Taste, Hygiene, Quality) and sentiment chart.
+4. Suspicious Provider:     /providers/2 (Royal Star Mess)
+   - Show how the AI detected promotional spam and duplicate phrasing (Yellow/Red badge).
+5. Comparison Tool:         /providers/compare?p1=1&p2=2
+   - Side-by-side comparison matrix.
+6. Admin Dashboard:         /admin/dashboard
+   - Telemetry overview: total providers, reviews analyzed, suspicious reviews detected.
+
+================================================================================
+6. TROUBLESHOOTING & COMMON ISSUES
+================================================================================
+
+Issue 1: "Internal Server Error" on Cloud
+- Solution: Check logs in Render / PythonAnywhere dashboard.
+  Make sure `python scripts/seed_db.py` was executed to create database tables.
+
+Issue 2: Changes don't appear after pushing to GitHub
+- Solution: 
+  On Render: It will automatically trigger a new deployment. Wait 2 minutes.
+  On PythonAnywhere: Pull the changes in bash console (`git pull`) and click "Reload".
+
+Issue 3: Port errors on Render
+- Solution: Render automatically assigns a dynamic port via the `$PORT` environment variable.
+  `gunicorn run:app` handles this automatically.
+
+Issue 4: Gemini AI Key Not Working / Rate Limited
+- Solution: Tifinify is designed with resilient fallback! 
+  If GEMINI_API_KEY is empty or reaches quota, Tifinify automatically uses its 
+  deterministic NLP algorithm so the application never breaks.
+
+================================================================================
+All set! Your Tifinify project is ready for deployment.
+================================================================================
